@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solang IDE - MVP Design</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --accent: #615ef7;
+        --bg-primary: #0f0f23;
+        --bg-secondary: #1a1b3a;
+        --bg-tertiary: #2a2d5f;
+        --text-primary: #ffffff;
+        --text-secondary: #b8bcc8;
+        --text-muted: #6b7280;
+        --border: #374151;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --error: #ef4444;
+        --radius: 16px;
+        --spacing: 8px;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .ide-container {
+        display: grid;
+        grid-template-rows: 64px 1fr auto;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      /* Top Bar */
+      .top-bar {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        gap: 24px;
+      }
+
+      .logo {
+        font-weight: 600;
+        font-size: 18px;
+        color: var(--accent);
+      }
+
+      .top-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .btn {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn:hover {
+        background: var(--accent);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .network-selector {
+        margin-left: auto;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .network-item {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .network-item.active {
+        color: var(--success);
+      }
+
+      /* Main Content */
+      .main-content {
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        height: 100%;
+      }
+
+      /* Explorer */
+      .explorer {
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .explorer-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .explorer-tab {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+
+      .explorer-tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      .file-tree {
+        flex: 1;
+        padding: 16px;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        margin-bottom: 4px;
+      }
+
+      .file-item:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .file-item.active {
+        background: var(--accent);
+      }
+
+      .file-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        opacity: 0.7;
+      }
+
+      /* Editor */
+      .editor-area {
+        background: var(--bg-primary);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .editor-tabs {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        padding: 0 16px;
+      }
+
+      .editor-tab {
+        padding: 12px 16px;
+        font-size: 14px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        position: relative;
+      }
+
+      .editor-tab.active {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent);
+      }
+
+      .editor-content {
+        flex: 1;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+        padding: 24px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        background: var(--bg-primary);
+      }
+
+      .code-line {
+        margin-bottom: 4px;
+      }
+
+      .line-number {
+        color: var(--text-muted);
+        margin-right: 16px;
+        user-select: none;
+      }
+
+      /* Right Panel */
+      .right-panel {
+        background: var(--bg-secondary);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .panel-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-tab {
+        flex: 1;
+        padding: 12px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+
+      .panel-tab.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      .panel-content {
+        flex: 1;
+        padding: 16px;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 40px 20px;
+        font-size: 14px;
+      }
+
+      .artifact-item {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .artifact-title {
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .artifact-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .download-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .invoke-result {
+        margin-bottom: 16px;
+      }
+
+      .result-card {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      .result-title {
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      }
+
+      .result-value {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        padding: 8px;
+        border-radius: 4px;
+      }
+
+      /* Terminal */
+      .terminal-container {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        transition: height 0.3s ease;
+        height: 40px;
+        min-height: 40px;
+        max-height: 400px;
+        resize: vertical;
+        overflow: hidden;
+      }
+
+      .terminal-container.expanded {
+        height: 200px;
+      }
+
+      .terminal-header {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        height: 40px;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .terminal-toggle {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        margin-right: 12px;
+        font-size: 12px;
+        transition: transform 0.3s ease;
+      }
+
+      .terminal-toggle.expanded {
+        transform: rotate(180deg);
+      }
+
+      .terminal-title {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .terminal-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+
+      .terminal-action-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      .terminal-action-btn:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+      }
+
+      .terminal-content {
+        flex: 1;
+        background: var(--bg-primary);
+        padding: 12px 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-secondary);
+        overflow-y: auto;
+        display: none;
+      }
+
+      .terminal-content.show {
+        display: block;
+      }
+
+      .terminal-line {
+        margin-bottom: 4px;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .terminal-prompt {
+        color: var(--accent);
+        margin-right: 8px;
+        flex-shrink: 0;
+      }
+
+      .terminal-output {
+        color: var(--text-secondary);
+        flex: 1;
+      }
+
+      .terminal-input-line {
+        display: flex;
+        align-items: center;
+        margin-top: 8px;
+      }
+
+      .terminal-input {
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        flex: 1;
+        outline: none;
+        margin-left: 8px;
+      }
+
+      .terminal-success {
+        color: var(--success);
+      }
+
+      .terminal-error {
+        color: var(--error);
+      }
+
+      .terminal-warning {
+        color: var(--warning);
+      }
+
+      .terminal-info {
+        color: var(--text-muted);
+      }
+
+      /* Compile Modal */
+      .compile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .compile-modal {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        max-width: 600px;
+        width: 90%;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .flag-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .flag-chip {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .flag-chip:hover {
+        border-color: var(--accent);
+      }
+
+      .flag-chip.active {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+
+      .custom-flags {
+        margin-bottom: 16px;
+      }
+
+      .flags-textarea {
+        width: 100%;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: 'JetBrains Mono', monospace;
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      .compile-info {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      /* Deploy Drawer Overlay */
+      .deploy-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .deploy-drawer {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+      }
+
+      .drawer-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+      }
+
+      .form-input {
+        width: 100%;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .form-select {
+        width: 100%;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .deploy-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .btn-cancel {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+      }
+
+      /* Network & Account Dropdowns */
+      .dropdown-container {
+        position: relative;
+        display: inline-block;
+      }
+
+      .dropdown-trigger {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 14px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dropdown-trigger:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .dropdown-trigger.active {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-width: 280px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: none;
+        margin-top: 4px;
+      }
+
+      .dropdown-menu.show {
+        display: block;
+      }
+
+      .dropdown-header {
+        padding: 16px 16px 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 8px;
+      }
+
+      .dropdown-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 6px;
+        margin: 4px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .dropdown-item:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .dropdown-item.selected {
+        background: var(--accent);
+        color: white;
+      }
+
+      .dropdown-item-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .dropdown-item.selected .dropdown-item-title {
+        color: white;
+      }
+
+      .dropdown-item-subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      .dropdown-item.selected .dropdown-item-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-left: auto;
+        margin-top: 2px;
+      }
+
+      .status-connected {
+        background: var(--success);
+      }
+
+      .status-disconnected {
+        background: var(--text-muted);
+      }
+
+      .dropdown-footer {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        margin-top: 8px;
+      }
+
+      .dropdown-add-btn {
+        width: 100%;
+        background: transparent;
+        border: 1px dashed var(--border);
+        color: var(--text-secondary);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .dropdown-add-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ide-container">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="logo">Solang IDE</div>
+        <div class="top-actions">
+          <button class="btn btn-primary" onclick="showCompilerOptions()">
+            ⚙️ Compile
+          </button>
+          <button class="btn" onclick="showDeployDrawer()">🚀 Deploy</button>
+          <button class="btn">▶️ Invoke</button>
+        </div>
+        <div class="network-selector">
+          <span class="network-item">Target: <strong>Soroban</strong></span>
+          
+          <!-- Network Dropdown -->
+          <div class="dropdown-container">
+            <button class="dropdown-trigger" onclick="toggleDropdown('networkDropdown')">
+              Network: <strong id="selectedNetwork">Futurenet</strong> 
+              <span class="status-indicator status-connected"></span>
+              ▼
+            </button>
+            <div class="dropdown-menu" id="networkDropdown">
+              <div class="dropdown-header">Select Network</div>
+              <div class="dropdown-item selected" onclick="selectNetwork('Futurenet', 'https://rpc-futurenet.stellar.org', true)">
+                <div class="dropdown-item-title">Futurenet</div>
+                <div class="dropdown-item-subtitle">https://rpc-futurenet.stellar.org</div>
+              </div>
+              <div class="dropdown-item" onclick="selectNetwork('Testnet', 'https://rpc-testnet.stellar.org', true)">
+                <div class="dropdown-item-title">Testnet</div>
+                <div class="dropdown-item-subtitle">https://rpc-testnet.stellar.org</div>
+              </div>
+              <div class="dropdown-item" onclick="selectNetwork('Local', 'http://localhost:8000', false)">
+                <div class="dropdown-item-title">Local Node</div>
+                <div class="dropdown-item-subtitle">http://localhost:8000</div>
+              </div>
+              <div class="dropdown-footer">
+                <button class="dropdown-add-btn">+ Add Custom Network</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Dropdown -->
+          <div class="dropdown-container">
+            <button class="dropdown-trigger" onclick="toggleDropdown('accountDropdown')">
+              Account: <strong id="selectedAccount">0x1a2b...c3d4</strong> 
+              ▼
+            </button>
+            <div class="dropdown-menu" id="accountDropdown">
+              <div class="dropdown-header">Select Account</div>
+              <div class="dropdown-item selected" onclick="selectAccount('0x1a2b...c3d4', '12.5 XLM')">
+                <div class="dropdown-item-title">Default Account</div>
+                <div class="dropdown-item-subtitle">0x1a2b3c4d5e6f7890...c3d4 • 12.5 XLM</div>
+              </div>
+              <div class="dropdown-item" onclick="selectAccount('0x9f8e...7d6c', '8.2 XLM')">
+                <div class="dropdown-item-title">Test Account 1</div>
+                <div class="dropdown-item-subtitle">0x9f8e7d6c5b4a3210...7d6c • 8.2 XLM</div>
+              </div>
+              <div class="dropdown-item" onclick="selectAccount('0x5a6b...1c2d', '0 XLM')">
+                <div class="dropdown-item-title">Test Account 2</div>
+                <div class="dropdown-item-subtitle">0x5a6b7c8d9e0f1234...1c2d • 0 XLM</div>
+              </div>
+              <div class="dropdown-footer">
+                <button class="dropdown-add-btn">+ Import Account</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn">🌙</button>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Explorer -->
+        <div class="explorer">
+          <div class="explorer-tabs">
+            <div class="explorer-tab active">Files</div>
+            <div class="explorer-tab">Examples</div>
+          </div>
+          <div class="file-tree">
+            <div class="file-item active">
+              <div class="file-icon">📄</div>
+              contract.sol
+            </div>
+            <div class="file-item">
+              <div class="file-icon">📁</div>
+              lib/
+            </div>
+            <div class="file-item">
+              <div class="file-icon">⚙️</div>
+              solang.toml
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-area">
+          <div class="editor-tabs">
+            <button class="editor-tab active">contract.sol ×</button>
+          </div>
+          <div class="editor-content">
+            <div class="code-line">
+              <span class="line-number">1</span>
+              <span style="color: #f472b6">contract</span>
+              <span style="color: #60a5fa">HelloWorld</span> {
+            </div>
+            <div class="code-line">
+              <span class="line-number">2</span>
+              &nbsp;&nbsp;<span style="color: #f472b6">string</span>
+              <span style="color: #fde047">public</span> greeting;
+            </div>
+            <div class="code-line">
+              <span class="line-number">3</span>
+            </div>
+            <div class="code-line">
+              <span class="line-number">4</span>
+              &nbsp;&nbsp;<span style="color: #f472b6">constructor</span>(<span
+                style="color: #f472b6"
+                >string</span
+              >
+              <span style="color: #fde047">memory</span> _greeting) {
+            </div>
+            <div class="code-line">
+              <span class="line-number">5</span>
+              &nbsp;&nbsp;&nbsp;&nbsp;greeting = _greeting;
+            </div>
+            <div class="code-line">
+              <span class="line-number">6</span>
+              &nbsp;&nbsp;}
+            </div>
+            <div class="code-line">
+              <span class="line-number">7</span>
+            </div>
+            <div class="code-line">
+              <span class="line-number">8</span>
+              &nbsp;&nbsp;<span style="color: #f472b6">function</span>
+              <span style="color: #60a5fa">setGreeting</span>(<span
+                style="color: #f472b6"
+                >string</span
+              >
+              <span style="color: #fde047">memory</span> _greeting)
+              <span style="color: #fde047">public</span> {
+            </div>
+            <div class="code-line">
+              <span class="line-number">9</span>
+              &nbsp;&nbsp;&nbsp;&nbsp;greeting = _greeting;
+            </div>
+            <div class="code-line">
+              <span class="line-number">10</span>
+              &nbsp;&nbsp;}
+            </div>
+            <div class="code-line">
+              <span class="line-number">11</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+          <div class="panel-tabs">
+            <div class="panel-tab active">Build</div>
+            <div class="panel-tab">Artifacts</div>
+            <div class="panel-tab">Invoke</div>
+          </div>
+          <div class="panel-content">
+            <div class="empty-state">No artifacts yet — press Compile.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal -->
+      <div class="terminal-container" id="terminalContainer">
+        <div class="terminal-header" onclick="toggleTerminal()">
+          <button class="terminal-toggle" id="terminalToggle">▲</button>
+          <span class="terminal-title">Terminal</span>
+          <div class="terminal-actions">
+            <button class="terminal-action-btn" onclick="clearTerminal()" title="Clear">🗑️</button>
+            <button class="terminal-action-btn" onclick="splitTerminal()" title="Split Terminal">⚏</button>
+            <button class="terminal-action-btn" onclick="newTerminal()" title="New Terminal">+</button>
+          </div>
+        </div>
+        <div class="terminal-content" id="terminalContent">
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-output terminal-info">Solang IDE Terminal - Ready</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-output">solang --version</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-output terminal-success">Solang version 0.3.3 (Linux x86_64)</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-output">stellar network ls</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-output">futurenet: https://rpc-futurenet.stellar.org</span>
+          </div>
+          <div class="terminal-line">
+            <span class="terminal-output">testnet: https://rpc-testnet.stellar.org</span>
+          </div>
+          <div class="terminal-input-line">
+            <span class="terminal-prompt">$</span>
+            <input 
+              type="text" 
+              class="terminal-input" 
+              id="terminalInput"
+              placeholder="Type a command..."
+              onkeypress="handleTerminalInput(event)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compile Modal -->
+    <div class="compile-overlay" id="compileOverlay">
+      <div class="compile-modal">
+        <h3 class="modal-title">
+          ⚙️ Compiler Options
+        </h3>
+        
+        <div class="form-group">
+          <label class="form-label">Quick Flags</label>
+          <div class="flag-chips">
+            <div class="flag-chip" onclick="toggleFlag(this)">--optimize</div>
+            <div class="flag-chip" onclick="toggleFlag(this)">--emit-ir</div>
+            <div class="flag-chip" onclick="toggleFlag(this)">--emit-abi</div>
+            <div class="flag-chip" onclick="toggleFlag(this)">--emit-debug</div>
+            <div class="flag-chip" onclick="toggleFlag(this)">--no-strength-reduce</div>
+            <div class="flag-chip" onclick="toggleFlag(this)">--no-dead-storage</div>
+          </div>
+        </div>
+
+        <div class="form-group custom-flags">
+          <label class="form-label">Custom Flags</label>
+          <textarea 
+            class="flags-textarea" 
+            id="customFlags"
+            placeholder="Add custom compiler flags here...&#10;Example: --target soroban --optimize-gas"
+          ></textarea>
+        </div>
+
+        <div class="compile-info">
+          <strong>Solang Compiler v0.3.3</strong><br>
+          Target: Soroban (Stellar Smart Contracts)<br>
+          Output: WASM bytecode + ABI JSON
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="hideCompileModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="runCompile()">🔨 Compile</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy Drawer -->
+    <div class="deploy-overlay" id="deployOverlay">
+      <div class="deploy-drawer">
+        <h3 class="drawer-title">Deploy Contract</h3>
+
+        <div class="form-group">
+          <label class="form-label">Contract</label>
+          <select class="form-select">
+            <option>HelloWorld</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Constructor Arguments</label>
+          <input
+            class="form-input"
+            placeholder='_greeting (string): "Hello, Stellar!"'
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Account</label>
+          <select class="form-select">
+            <option>0x1a2b...c3d4 (Default Account)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Network</label>
+          <div
+            style="
+              background: var(--bg-tertiary);
+              padding: 12px;
+              border-radius: 8px;
+              font-size: 14px;
+            "
+          >
+            <strong>Futurenet</strong><br />
+            <span style="color: var(--text-muted); font-size: 12px"
+              >RPC: https://rpc-futurenet.stellar.org</span
+            >
+          </div>
+        </div>
+
+        <div class="deploy-actions">
+          <button class="btn btn-cancel" onclick="hideDeployDrawer()">
+            Cancel
+          </button>
+          <button class="btn btn-primary">Deploy Contract</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showDeployDrawer() {
+        document.getElementById("deployOverlay").style.display = "flex";
+      }
+
+      function hideDeployDrawer() {
+        document.getElementById("deployOverlay").style.display = "none";
+      }
+
+      function showCompilerOptions() {
+        document.getElementById('compileOverlay').style.display = 'flex';
+      }
+
+      function hideCompileModal() {
+        document.getElementById('compileOverlay').style.display = 'none';
+      }
+
+      function toggleFlag(chip) {
+        chip.classList.toggle('active');
+      }
+
+      function runCompile() {
+        // Collect active flags
+        const activeFlags = [];
+        document.querySelectorAll('.flag-chip.active').forEach(chip => {
+          activeFlags.push(chip.textContent);
+        });
+        
+        const customFlags = document.getElementById('customFlags').value.trim();
+        const allFlags = [...activeFlags, ...customFlags.split(' ').filter(f => f)];
+        
+        console.log('Compiling with flags:', allFlags);
+        hideCompileModal();
+        
+        // Simulate compilation success
+        setTimeout(() => {
+          document.querySelector('.panel-content').innerHTML = `
+            <div style="color: var(--success); margin-bottom: 12px;">
+              ✅ Compilation successful
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              Compiled in 1.4s with flags: ${allFlags.join(' ') || 'none'}
+            </div>
+            <div class="artifact-item">
+              <div class="artifact-title">Build Output</div>
+              <div class="artifact-meta">No errors or warnings</div>
+            </div>
+          `;
+        }, 500);
+      }
+
+      // Switch between panel tabs
+      document.querySelectorAll(".panel-tab").forEach((tab) => {
+        tab.addEventListener("click", function () {
+          document
+            .querySelectorAll(".panel-tab")
+            .forEach((t) => t.classList.remove("active"));
+          this.classList.add("active");
+
+          const content = document.querySelector(".panel-content");
+          if (this.textContent === "Artifacts") {
+            content.innerHTML = `
+                        <div class="artifact-item">
+                            <div class="artifact-title">ABI JSON</div>
+                            <div class="artifact-meta">HelloWorld.abi • 2.3 KB</div>
+                            <button class="download-btn">📥 Download</button>
+                        </div>
+                        <div class="artifact-item">
+                            <div class="artifact-title">WASM Binary</div>
+                            <div class="artifact-meta">HelloWorld.wasm • 45.2 KB</div>
+                            <button class="download-btn">📥 Download</button>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 16px;">
+                            Compiled with Solang v0.3.3 in 1.2s
+                        </div>
+                    `;
+          } else if (this.textContent === "Invoke") {
+            content.innerHTML = `
+                        <div class="invoke-result">
+                            <div class="result-card">
+                                <div class="result-title">Return Value</div>
+                                <div class="result-value">"Hello, Stellar!"</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-title">Logs</div>
+                                <div class="result-value">Event emitted: GreetingSet<br>Gas used: 21,420</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            Last invoked: setGreeting() • 0x9a8b...7c6d
+                        </div>
+                    `;
+          } else {
+            content.innerHTML =
+              '<div class="empty-state">No artifacts yet — press Compile.</div>';
+          }
+        });
+      });
+
+      // Terminal functions
+      function toggleTerminal() {
+        const container = document.getElementById('terminalContainer');
+        const toggle = document.getElementById('terminalToggle');
+        const content = document.getElementById('terminalContent');
+        
+        const isExpanded = container.classList.contains('expanded');
+        
+        if (isExpanded) {
+          container.classList.remove('expanded');
+          toggle.classList.remove('expanded');
+          content.classList.remove('show');
+        } else {
+          container.classList.add('expanded');
+          toggle.classList.add('expanded');
+          content.classList.add('show');
+          // Focus input when terminal opens
+          setTimeout(() => {
+            document.getElementById('terminalInput').focus();
+          }, 300);
+        }
+      }
+
+      function clearTerminal() {
+        const content = document.getElementById('terminalContent');
+        content.innerHTML = `
+          <div class="terminal-line">
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-output terminal-info">Terminal cleared</span>
+          </div>
+          <div class="terminal-input-line">
+            <span class="terminal-prompt">$</span>
+            <input 
+              type="text" 
+              class="terminal-input" 
+              id="terminalInput"
+              placeholder="Type a command..."
+              onkeypress="handleTerminalInput(event)"
+            />
+          </div>
+        `;
+        document.getElementById('terminalInput').focus();
+      }
+
+      function splitTerminal() {
+        addTerminalLine('Split terminal functionality would be implemented here', 'info');
+      }
+
+      function newTerminal() {
+        addTerminalLine('New terminal instance created', 'success');
+      }
+
+      function handleTerminalInput(event) {
+        if (event.key === 'Enter') {
+          const input = event.target;
+          const command = input.value.trim();
+          
+          if (command) {
+            // Add command to terminal
+            addTerminalLine(command, '', true);
+            
+            // Process command
+            processCommand(command);
+            
+            // Clear input
+            input.value = '';
+          }
+        }
+      }
+
+      function addTerminalLine(text, type = '', isCommand = false) {
+        const content = document.getElementById('terminalContent');
+        const inputLine = content.querySelector('.terminal-input-line');
+        
+        const line = document.createElement('div');
+        line.className = 'terminal-line';
+        
+        if (isCommand) {
+          line.innerHTML = `
+            <span class="terminal-prompt">$</span>
+            <span class="terminal-output">${text}</span>
+          `;
+        } else {
+          const className = type ? `terminal-${type}` : '';
+          line.innerHTML = `
+            <span class="terminal-output ${className}">${text}</span>
+          `;
+        }
+        
+        content.insertBefore(line, inputLine);
+        content.scrollTop = content.scrollHeight;
+      }
+
+      function processCommand(command) {
+        const parts = command.toLowerCase().split(' ');
+        const cmd = parts[0];
+        
+        switch (cmd) {
+          case 'help':
+            addTerminalLine('Available commands:', 'info');
+            addTerminalLine('  solang compile [flags] - Compile contracts');
+            addTerminalLine('  stellar account list - List accounts');
+            addTerminalLine('  stellar network ls - List networks');
+            addTerminalLine('  clear - Clear terminal');
+            addTerminalLine('  help - Show this help');
+            break;
+            
+          case 'clear':
+            setTimeout(() => clearTerminal(), 100);
+            break;
+            
+          case 'solang':
+            if (parts[1] === 'compile') {
+              addTerminalLine('🔨 Compiling contracts...', 'info');
+              setTimeout(() => {
+                addTerminalLine('✅ Compilation successful', 'success');
+                addTerminalLine('Generated: HelloWorld.wasm, HelloWorld.abi', 'success');
+              }, 1000);
+            } else if (parts[1] === '--version') {
+              addTerminalLine('Solang version 0.3.3 (Linux x86_64)', 'success');
+            } else {
+              addTerminalLine('Usage: solang [compile|--version]', 'warning');
+            }
+            break;
+            
+          case 'stellar':
+            if (parts[1] === 'account' && parts[2] === 'list') {
+              addTerminalLine('Available accounts:', 'info');
+              addTerminalLine('  0x1a2b3c4d5e6f7890...c3d4 (12.5 XLM)', 'success');
+              addTerminalLine('  0x9f8e7d6c5b4a3210...7d6c (8.2 XLM)', 'success');
+            } else if (parts[1] === 'network' && parts[2] === 'ls') {
+              addTerminalLine('Configured networks:', 'info');
+              addTerminalLine('  futurenet: https://rpc-futurenet.stellar.org', 'success');
+              addTerminalLine('  testnet: https://rpc-testnet.stellar.org', 'success');
+            } else {
+              addTerminalLine('Usage: stellar [account|network] [subcommand]', 'warning');
+            }
+            break;
+            
+          case 'pwd':
+            addTerminalLine('/workspace/solang-project', 'success');
+            break;
+            
+          case 'ls':
+            addTerminalLine('contract.sol  lib/  solang.toml', 'success');
+            break;
+            
+          default:
+            addTerminalLine(`Command not found: ${command}`, 'error');
+            addTerminalLine('Type "help" for available commands', 'info');
+        }
+      }
+
+      // Network and Account dropdown functions
+      function toggleDropdown(dropdownId) {
+        // Close all other dropdowns first
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          if (menu.id !== dropdownId) {
+            menu.classList.remove('show');
+            menu.parentElement.querySelector('.dropdown-trigger').classList.remove('active');
+          }
+        });
+        
+        // Toggle the clicked dropdown
+        const dropdown = document.getElementById(dropdownId);
+        const trigger = dropdown.parentElement.querySelector('.dropdown-trigger');
+        
+        dropdown.classList.toggle('show');
+        trigger.classList.toggle('active');
+      }
+
+      function selectNetwork(name, rpc, isConnected) {
+        document.getElementById('selectedNetwork').textContent = name;
+        
+        // Update selected state
+        document.querySelectorAll('#networkDropdown .dropdown-item').forEach(item => {
+          item.classList.remove('selected');
+        });
+        event.target.closest('.dropdown-item').classList.add('selected');
+        
+        // Update status indicator (you can expand this based on actual connection status)
+        const indicator = document.querySelector('.dropdown-trigger .status-indicator');
+        indicator.className = `status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}`;
+        
+        // Close dropdown
+        toggleDropdown('networkDropdown');
+        
+        console.log(`Switched to network: ${name} (${rpc})`);
+      }
+
+      function selectAccount(address, balance) {
+        document.getElementById('selectedAccount').textContent = address;
+        
+        // Update selected state
+        document.querySelectorAll('#accountDropdown .dropdown-item').forEach(item => {
+          item.classList.remove('selected');
+        });
+        event.target.closest('.dropdown-item').classList.add('selected');
+        
+        // Close dropdown
+        toggleDropdown('accountDropdown');
+        
+        console.log(`Switched to account: ${address} (${balance})`);
+      }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('.dropdown-container')) {
+          document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+            menu.parentElement.querySelector('.dropdown-trigger').classList.remove('active');
+          });
+        }
+      });
+
+      // Click outside to close modals
+      document.getElementById("deployOverlay").addEventListener("click", function (e) {
+        if (e.target === this) {
+          hideDeployDrawer();
+        }
+      });
+
+      document.getElementById('compileOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideCompileModal();
+        }
+      });
+    </script>
+  </body>
+</html>
